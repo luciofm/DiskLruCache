@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.jakewharton;
+package main.java.com.jakewharton;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
@@ -46,6 +46,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import android.util.Log;
 
 /**
  * A cache that uses a bounded amount of space on a filesystem. Each cache
@@ -91,6 +93,7 @@ import java.util.concurrent.TimeUnit;
  * responding appropriately.
  */
 public final class DiskLruCache implements Closeable {
+	private String PACKAGE_NAME;
     static final String JOURNAL_FILE = "journal";
     static final String JOURNAL_FILE_TMP = "journal.tmp";
     static final String MAGIC = "libcore.io.DiskLruCache";
@@ -264,13 +267,14 @@ public final class DiskLruCache implements Closeable {
         }
     };
 
-    private DiskLruCache(File directory, int appVersion, int valueCount, long maxSize) {
+    private DiskLruCache(File directory, String package_name, int appVersion, int valueCount, long maxSize) {
         this.directory = directory;
         this.appVersion = appVersion;
         this.journalFile = new File(directory, JOURNAL_FILE);
         this.journalFileTmp = new File(directory, JOURNAL_FILE_TMP);
         this.valueCount = valueCount;
         this.maxSize = maxSize;
+        this.PACKAGE_NAME = package_name;
     }
 
     /**
@@ -283,7 +287,7 @@ public final class DiskLruCache implements Closeable {
      * @param maxSize the maximum number of bytes this cache should use to store
      * @throws IOException if reading or writing the cache directory fails
      */
-    public static DiskLruCache open(File directory, int appVersion, int valueCount, long maxSize)
+    public static DiskLruCache open(File directory, String name, int appVersion, int valueCount, long maxSize)
             throws IOException {
         if (maxSize <= 0) {
             throw new IllegalArgumentException("maxSize <= 0");
@@ -293,7 +297,7 @@ public final class DiskLruCache implements Closeable {
         }
 
         // prefer to pick up where we left off
-        DiskLruCache cache = new DiskLruCache(directory, appVersion, valueCount, maxSize);
+        DiskLruCache cache = new DiskLruCache(directory, name, appVersion, valueCount, maxSize);
         if (cache.journalFile.exists()) {
             try {
                 cache.readJournal();
@@ -309,7 +313,7 @@ public final class DiskLruCache implements Closeable {
 
         // create a new empty cache
         directory.mkdirs();
-        cache = new DiskLruCache(directory, appVersion, valueCount, maxSize);
+        cache = new DiskLruCache(directory, name, appVersion, valueCount, maxSize);
         cache.rebuildJournal();
         return cache;
     }
@@ -713,6 +717,10 @@ public final class DiskLruCache implements Closeable {
             this.key = key;
             this.sequenceNumber = sequenceNumber;
             this.ins = ins;
+        }
+
+        public String getKey() {
+        	return key;
         }
 
         /**
